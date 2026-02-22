@@ -1,11 +1,60 @@
 import type { IconifyJSON } from '@iconify/react';
 
 import { addCollection } from '@iconify/react';
-import mdiIcons from '@iconify-json/mdi/icons.json';
-import solarIcons from '@iconify-json/solar/icons.json';
-import vscodeIcons from '@iconify-json/vscode-icons/icons.json';
+import mdiIconsAll from '@iconify-json/mdi/icons.json';
+import solarIconsAll from '@iconify-json/solar/icons.json';
+import vscodeIconsAll from '@iconify-json/vscode-icons/icons.json';
 
 import allIcons from './icon-sets';
+
+// ----------------------------------------------------------------------
+
+const USED_ICONS = {
+  solar: [
+    'check-circle-bold',
+    'home-angle-bold-duotone',
+    'pen-bold',
+    'settings-bold-duotone',
+    'share-bold',
+    'shield-keyhole-bold-duotone',
+    'trash-bin-trash-bold',
+  ],
+  'vscode-icons': [
+    'file-type-pdf2',
+  ]
+};
+
+// ----------------------------------------------------------------------
+
+function extractUsedIcons(
+  fullLibrary: IconifyJSON,
+  usedNames: string[]
+): IconifyJSON {
+  const extracted: IconifyJSON = {
+    prefix: fullLibrary.prefix,
+    icons: {},
+  };
+
+  if (fullLibrary.width) extracted.width = fullLibrary.width;
+  if (fullLibrary.height) extracted.height = fullLibrary.height;
+
+  usedNames.forEach((iconName) => {
+    if (fullLibrary.icons[iconName]) {
+      extracted.icons[iconName] = fullLibrary.icons[iconName];
+    }
+  });
+
+  return extracted;
+}
+
+const solarIcons = extractUsedIcons(
+  solarIconsAll as IconifyJSON,
+  USED_ICONS.solar
+);
+const vscodeIcons = extractUsedIcons(
+  vscodeIconsAll as IconifyJSON,
+  USED_ICONS['vscode-icons']
+);
 
 // ----------------------------------------------------------------------
 
@@ -27,9 +76,8 @@ export const iconSets = Object.entries(allIcons).reduce((acc, [key, value]) => {
 
 export const allIconNames = [
   ...Object.keys(allIcons),
-  ...Object.keys(solarIcons.icons).map((name) => `solar:${name}`),
-  ...Object.keys(vscodeIcons.icons).map((name) => `vscode-icons:${name}`),
-  ...Object.keys(mdiIcons.icons).map((name) => `mdi:${name}`),
+  ...USED_ICONS.solar.map((name) => `solar:${name}`),
+  ...USED_ICONS['vscode-icons'].map((name) => `vscode-icons:${name}`),
 ];
 
 export type IconifyName = keyof typeof allIcons | string;
@@ -52,9 +100,8 @@ export function registerIcons() {
     addCollection(iconSetConfig);
   });
 
-  addCollection(solarIcons as IconifyJSON);
-  addCollection(vscodeIcons as IconifyJSON);
-  addCollection(mdiIcons as IconifyJSON);
+  addCollection(solarIcons);
+  addCollection(vscodeIcons);
 
   areIconsRegistered = true;
 }

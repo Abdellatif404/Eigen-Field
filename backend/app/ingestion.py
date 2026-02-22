@@ -1,12 +1,9 @@
 import re
 import fitz
 import chromadb
-import warnings
 import unicodedata
 from chromadb.utils import embedding_functions
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-warnings.filterwarnings("ignore", category=UserWarning, module="pypdf")
 
 embeddings = embedding_functions.DefaultEmbeddingFunction()
 chroma_client = chromadb.PersistentClient(path="/opt/eigen_field/vectordb/")
@@ -15,82 +12,85 @@ collection = chroma_client.get_or_create_collection(
 	name="agriculture_docs", embedding_function=embeddings
 )
 
+splitter = RecursiveCharacterTextSplitter(
+	chunk_size=1500,
+	chunk_overlap=250,
+	length_function=len,
+	separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""]
+)
 
 def clean_text(text: str) -> str:
 	"""Clean extracted text"""
 	if not text:
 		return ""
-
 	text = unicodedata.normalize("NFKC", text)
-	text = re.sub(r"(\w+)-\s*\n\s*(\w+)", r"\1\2", text)
-	text = re.sub(r"[ \t]+", " ", text)
-	text = re.sub(r"Page \d+(?:/\d+)?", "", text, flags=re.IGNORECASE)
-	text = re.sub(r"\n\s*\n+", "\n\n", text)
-
+	text = re.sub(r"(\w+)-\s*\n\s*(\w+)", r"\1\2", text) # Remove hyphen line breaks
+	text = re.sub(r"[ \t]+", " ", text) # Remove extra spaces and tabs
+	text = re.sub(r"\n\s*\n+", "\n\n", text) # Remove extra newlines
 	return text.strip()
 
-
-def process_pdf(file_path: str):
+def process_pdf(file_path: str) -> list[tuple[int, str]]:
 	"""Extract and clean text from PDF"""
 	try:
 		doc = fitz.open(file_path)
-		full_text = []
-		for page in doc:
+		pages = []
+		for page_num, page in enumerate(doc):
 			blocks = page.get_text("blocks")
 			blocks.sort(key=lambda b: (b[1], b[0]))
 			page_text = "\n".join([b[4] for b in blocks])
-			full_text.append(page_text)
-
-		text = "\n\n".join(full_text)
-		if not text.strip():
+			cleaned = clean_text(page_text)
+			if cleaned.strip():
+				pages.append((page_num + 1, cleaned))
+		if not pages:
 			raise ValueError("No text could be extracted")
-		return clean_text(text)
+		return pages
 	except Exception as e:
 		print(f"Error processing PDF: {e}")
 		raise
-
 
 def chunk_text(text: str):
 	"""Split text into chunks"""
 	if not text or not text.strip():
 		return []
-
-	splitter = RecursiveCharacterTextSplitter(
-		chunk_size=1500,
-		chunk_overlap=250,
-		length_function=len,
-		separators=["\n\n", "\n", ". ", " ", "", "! ", "? "],
-	)
 	chunks = splitter.split_text(text)
-
-	filtered_chunks = [chunk for chunk in chunks if len(chunk.strip()) >= 100]
-
-	return list(dict.fromkeys(filtered_chunks))
-
+	chunks = [chunk.strip() for chunk in chunks]
+	return list(dict.fromkeys(chunks))
 
 def index_document(file_path: str, doc_name: str, unique_id: str):
-	"""Extract, chunk, and index a document"""
-	text = process_pdf(file_path)
-	chunks = chunk_text(text)
+	"""Extract text from PDF, split into chunks, and index into ChromaDB"""
+	pages = process_pdf(file_path)
+	all_chanks = []
+	all_metadata = []
+	chunk_counter = 0
 
-	chunks = [c.strip() for c in chunks if len(c.strip()) > 20]
-
-	if not chunks:
+	for page_num, page_text in pages:
+		chunks = chunk_text(page_text)
+		for chunk in chunks:
+			all_chanks.append(chunk)
+			all_metadata.append({
+				"source": doc_name,
+				"file_id": unique_id,
+				"page_number": page_num,
+				"chunk_index": chunk_counter,
+			})
+			chunk_counter += 1
+	if not all_chanks:
 		raise ValueError("No chunks created")
 
 	BATCH_SIZE = 100
-
-	for i in range(0, len(chunks), BATCH_SIZE):
-		batch = chunks[i : i + BATCH_SIZE]
-		batch_ids = [f"{unique_id}_ch_{j}" for j in range(i, i + len(batch))]
-		batch_metadata = [
-			{"source": doc_name, "file_id": unique_id, "chunk_index": j}
+	for i in range(0, len(all_chanks), BATCH_SIZE):
+		batch = all_chanks[i : i + BATCH_SIZE]
+		batch_metadata = all_metadata[i : i + BATCH_SIZE]
+		batch_ids = [
+			f"{unique_id}_ch_{j}"
 			for j in range(i, i + len(batch))
 		]
-
-		collection.add(ids=batch_ids, documents=batch, metadatas=batch_metadata)
-	return len(chunks)
-
+		collection.add(
+			ids=batch_ids,
+			documents=batch,
+			metadatas=batch_metadata
+		)
+	return len(all_chanks)
 
 def delete_document_from_vectordb(doc_id: str):
 	"""Remove all chunks from a document"""
