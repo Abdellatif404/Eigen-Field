@@ -1,4 +1,4 @@
-import time
+import json
 from langchain_ollama import OllamaLLM
 
 llm = OllamaLLM(
@@ -6,11 +6,12 @@ llm = OllamaLLM(
 	base_url="http://eigenfield_ollama:11434",
 	temperature=0.4,
 	num_predict=800,
-	num_ctx=2048,
+	num_ctx=4096,
 	top_p=0.95,
 	repeat_penalty=1.15,
 )
 
+SOURCES_DELIMITER = "\n<!--SOURCES_JSON-->"
 
 def generate_response(query: str, context_chunks: list):
 	"""Generate answer using retrieved chunks"""
@@ -21,8 +22,8 @@ def generate_response(query: str, context_chunks: list):
 
 	context = "\n\n".join(
 		[
-			f"Source: {chunk['source']}\n{chunk['text'][:700]}"
-			for chunk in context_chunks[:3]
+			f"Source: {chunk['source']}\n{chunk['text']}"
+			for chunk in context_chunks
 		]
 	)
 
@@ -35,17 +36,24 @@ Question: {query}
 
 Provide a detailed answer with examples and explanations (5-8 sentences):"""
 
-	first_token = True
-	token_count = 0
-
 	try:
 		for chunk in llm.stream(prompt):
 			if chunk:
-				if first_token:
-					first_token = False
-
-				token_count += 1
 				yield chunk
+
+		sources = []
+		seen = set()
+		for chunk in context_chunks:
+			key = f"{chunk['source']}_p{chunk.get('page_number', '?')}"
+			if key not in seen:
+				seen.add(key)
+				sources.append({
+					"source": chunk["source"],
+					"page": chunk.get("page_number"),
+				})
+
+		yield SOURCES_DELIMITER
+		yield json.dumps(sources)
 
 	except Exception as e:
 		print(f"LLM Error: {e}")

@@ -1,23 +1,26 @@
+NAME = EigenField
+COMPOSE = docker compose
 
 all: build up
 
 build:
-	docker compose build
+	$(COMPOSE) build
 
 up:
-	docker compose up -d
+	$(COMPOSE) up -d
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 logs:
-	docker compose logs -f
-
-restart:
-	docker compose restart
+	$(COMPOSE) logs -f
 
 clean:
-	docker compose down -v
-	docker system prune -f
+	$(COMPOSE) down --remove-orphans
 
-.PHONY: all build up down logs restart clean
+fclean:
+	$(COMPOSE) down -v --rmi local
+
+re: fclean all
+
+.PHONY: all build up down logs clean fclean re

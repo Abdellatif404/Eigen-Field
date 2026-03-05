@@ -17,6 +17,8 @@ import { TypingIndicator } from '../typing-indicator';
 
 // ----------------------------------------------------------------------
 
+const SOURCES_DELIMITER = '\n<!--SOURCES_JSON-->';
+
 type Message = {
   id: string;
   role: 'user' | 'assistant';
@@ -115,6 +117,25 @@ export function ChatView() {
       let assistantMessageAdded = false;
       let rafId: number | null = null;
 
+      const getDisplayText = (text: string) => {
+        const delimiterIndex = text.indexOf(SOURCES_DELIMITER);
+        return delimiterIndex !== -1 ? text.substring(0, delimiterIndex) : text;
+      };
+
+      const parseSources = (text: string): string[] => {
+        const delimiterIndex = text.indexOf(SOURCES_DELIMITER);
+        if (delimiterIndex === -1) return [];
+        try {
+          const jsonStr = text.substring(delimiterIndex + SOURCES_DELIMITER.length);
+          const sources = JSON.parse(jsonStr) as { source: string; page: number | null }[];
+          return sources.map(
+            (s) => `${s.source}${s.page ? ` (p. ${s.page})` : ''}`
+          );
+        } catch {
+          return [];
+        }
+      };
+
       const scheduleUpdate = () => {
         if (rafId) return;
 
@@ -122,7 +143,7 @@ export function ChatView() {
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMsgId
-                ? { ...msg, content: accumulatedText }
+                ? { ...msg, content: getDisplayText(accumulatedText) }
                 : msg
             )
           );
@@ -135,12 +156,14 @@ export function ChatView() {
 
         if (done) {
           if (rafId) cancelAnimationFrame(rafId);
+          const sources = parseSources(accumulatedText);
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMsgId
                 ? {
                     ...msg,
-                    content: accumulatedText,
+                    content: getDisplayText(accumulatedText),
+                    sources,
                     timestamp: new Date().toLocaleTimeString(),
                   }
                 : msg
@@ -159,7 +182,7 @@ export function ChatView() {
             {
               id: assistantMsgId,
               role: 'assistant',
-              content: accumulatedText,
+              content: getDisplayText(accumulatedText),
               timestamp: new Date().toLocaleTimeString(),
             },
           ]);

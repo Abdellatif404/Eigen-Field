@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
@@ -73,6 +74,45 @@ export const ChatMessage = memo(function ChatMessage({
           >
             {message.content}
           </Typography>
+          {!isUser && message.sources && message.sources.length > 0 && (
+            <Box
+              sx={{
+                mt: 2,
+                pt: 1.5,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                alignItems: 'center',
+              }}
+            >
+              <Iconify
+                icon={'solar:document-bold' as any}
+                width={16}
+                sx={{ color: 'text.secondary', mr: 0.5 }}
+              />
+              <Typography
+                variant='caption'
+                sx={{ color: 'text.secondary', fontWeight: 600, mr: 0.5 }}
+              >
+                Sources:
+              </Typography>
+              {message.sources.map((source, index) => (
+                <Chip
+                  key={index}
+                  label={source}
+                  size='small'
+                  variant='outlined'
+                  sx={{
+                    height: 24,
+                    fontSize: '0.7rem',
+                    borderColor: theme.palette.divider,
+                    color: 'text.secondary',
+                  }}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
 
         <Typography

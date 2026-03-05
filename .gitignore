@@ -37,3 +37,7 @@ build
 tsconfig.tsbuildinfo
 .ncurc.js
 knip.jsonc
+
+# local development files
+vectordb
+data/uploads

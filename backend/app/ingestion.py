@@ -1,17 +1,10 @@
 import re
 import fitz
-import chromadb
 import unicodedata
-from chromadb.utils import embedding_functions
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from database import get_collection
 
-embeddings = embedding_functions.DefaultEmbeddingFunction()
-chroma_client = chromadb.PersistentClient(path="/opt/eigen_field/vectordb/")
-
-collection = chroma_client.get_or_create_collection(
-	name="agriculture_docs", embedding_function=embeddings
-)
-
+collection = get_collection()
 splitter = RecursiveCharacterTextSplitter(
 	chunk_size=1500,
 	chunk_overlap=250,
@@ -59,14 +52,14 @@ def chunk_text(text: str):
 def index_document(file_path: str, doc_name: str, unique_id: str):
 	"""Extract text from PDF, split into chunks, and index into ChromaDB"""
 	pages = process_pdf(file_path)
-	all_chanks = []
+	all_chunks = []
 	all_metadata = []
 	chunk_counter = 0
 
 	for page_num, page_text in pages:
 		chunks = chunk_text(page_text)
 		for chunk in chunks:
-			all_chanks.append(chunk)
+			all_chunks.append(chunk)
 			all_metadata.append({
 				"source": doc_name,
 				"file_id": unique_id,
@@ -74,12 +67,12 @@ def index_document(file_path: str, doc_name: str, unique_id: str):
 				"chunk_index": chunk_counter,
 			})
 			chunk_counter += 1
-	if not all_chanks:
+	if not all_chunks:
 		raise ValueError("No chunks created")
 
 	BATCH_SIZE = 100
-	for i in range(0, len(all_chanks), BATCH_SIZE):
-		batch = all_chanks[i : i + BATCH_SIZE]
+	for i in range(0, len(all_chunks), BATCH_SIZE):
+		batch = all_chunks[i : i + BATCH_SIZE]
 		batch_metadata = all_metadata[i : i + BATCH_SIZE]
 		batch_ids = [
 			f"{unique_id}_ch_{j}"
@@ -90,7 +83,7 @@ def index_document(file_path: str, doc_name: str, unique_id: str):
 			documents=batch,
 			metadatas=batch_metadata
 		)
-	return len(all_chanks)
+	return len(all_chunks)
 
 def delete_document_from_vectordb(doc_id: str):
 	"""Remove all chunks from a document"""

@@ -15,6 +15,10 @@ services:
       - OLLAMA_MAX_LOADED_MODELS=1
       - OLLAMA_FLASH_ATTENTION=1
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 3G
     networks:
       - eigenfield_network
 
@@ -35,6 +39,10 @@ services:
     restart: unless-stopped
     depends_on:
       - eigenfield_ollama
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     networks:
       - eigenfield_network
 
@@ -55,8 +63,13 @@ services:
     environment:
       - VITE_API_URL=http://localhost:9000
       - CHOKIDAR_USEPOLLING=true
+      - NODE_OPTIONS=--max-old-space-size=1024
     depends_on:
       - eigenfield_backend
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     networks:
       - eigenfield_network
     restart: unless-stopped
