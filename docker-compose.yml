@@ -22,6 +22,45 @@ services:
     networks:
       - eigenfield_network
 
+  eigenfield_langfuse_db:
+    image: postgres:16-alpine
+    container_name: eigenfield_langfuse_db
+    environment:
+      - POSTGRES_DB=langfuse
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse_secret
+    volumes:
+      - eigenfield_langfuse_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - eigenfield_network
+
+  eigenfield_langfuse:
+    image: langfuse/langfuse:2
+    container_name: eigenfield_langfuse
+    ports:
+      - "3100:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse:langfuse_secret@eigenfield_langfuse_db:5432/langfuse
+      - NEXTAUTH_SECRET=eigenfield-local-secret-change-me
+      - NEXTAUTH_URL=http://localhost:3100
+      - SALT=eigenfield-local-salt-change-me
+      - TELEMETRY_ENABLED=false
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=false
+    depends_on:
+      - eigenfield_langfuse_db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - eigenfield_network
+
   eigenfield_backend:
     build:
       context: ./backend
@@ -39,6 +78,7 @@ services:
     restart: unless-stopped
     depends_on:
       - eigenfield_ollama
+      - eigenfield_langfuse
     deploy:
       resources:
         limits:
@@ -81,6 +121,8 @@ volumes:
     name: eigenfield_pip_cache
   eigenfield_node_modules:
     name: eigenfield_node_modules
+  eigenfield_langfuse_db_data:
+    name: eigenfield_langfuse_db_data
 
 networks:
   eigenfield_network:

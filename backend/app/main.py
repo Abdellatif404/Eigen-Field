@@ -7,6 +7,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from retrieval import search_documents
 from generation import generate_response
 from ingestion import index_document, delete_document_from_vectordb
+from backend.app.tracing import get_langfuse
 
 app = FastAPI(title="EIGEN FIELD RAG Agriculture API")
 
@@ -123,12 +124,36 @@ async def delete_document(doc_id: str):
 
 @app.post("/chat")
 async def chat(query: str, top_k: int = 3):
-	"""Streaming RAG response"""
+	"""Streaming RAG response with Langfuse tracing"""
 	try:
-		chunks = search_documents(query, min(top_k, 3))
+		langfuse = get_langfuse()
+		trace = None
+
+		if langfuse:
+			trace = langfuse.trace(
+				name="rag-chat-pipeline",
+				input={"query": query, "top_k": top_k},
+				tags=["chat", "rag"],
+			)
+		chunks = search_documents(query, top_k, trace=trace)
+
+		def traced_stream():
+			"""Wrap generator to finalize trace after streaming completes"""
+			try:
+				yield from generate_response(query, chunks, trace=trace)
+			finally:
+				if trace:
+					trace.update(
+						output={
+							"num_chunks_retrieved": len(chunks),
+							"status": "completed",
+						}
+					)
+				if langfuse:
+					langfuse.flush()
 
 		return StreamingResponse(
-			generate_response(query, chunks),
+			traced_stream(),
 			media_type="text/plain",
 			headers={
 				"Cache-Control": "no-cache",

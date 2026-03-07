@@ -50,6 +50,35 @@ A smart document retrieval system that converts agricultural documents into an i
 - **Document Processing**: **PyMuPDF (fitz)** for text extraction, LangChain for recursive chunking.
 - **Containerization**: Docker + Docker Compose managed via **Makefile**.
 
+### Observability (Langfuse)
+
+The system includes **self-hosted [Langfuse](https://langfuse.com/)** for full RAG pipeline observability — no external API keys needed.
+
+<details>
+  <summary><b>🔍 View Tracing Dashboard</b></summary>
+  <br/>
+  <p>Every chat request produces a trace showing the full pipeline breakdown:</p>
+
+  ```
+  📦 rag-chat-pipeline
+  ├── 🔍 chromadb-retrieval    → latency, result count, relevance scores
+  └── 🤖 llm-generation       → prompt, model params, full response, latency
+  ```
+</details>
+
+**Access the dashboard** at [http://localhost:3100](http://localhost:3100) after running `make`.
+
+On first launch:
+1. Create an account (local only, no email verification)
+2. Go to **Settings → API Keys** → create a new key pair
+3. Add the keys to `backend/.env`:
+   ```
+   LANGFUSE_PUBLIC_KEY=pk-lf-...
+   LANGFUSE_SECRET_KEY=sk-lf-...
+   LANGFUSE_HOST=http://eigenfield_langfuse:3000
+   ```
+4. Restart the backend: `docker compose restart eigenfield_backend`
+
 ### System Performance
 
 - **Fast Indexing**: Processes complex PDFs quickly using high-performance C-based extraction (fitz).
