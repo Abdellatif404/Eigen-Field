@@ -1,7 +1,7 @@
 name: eigenfield
 
 services:
-  eigenfield_ollama:
+  ollama:
     image: ollama/ollama:0.13.5
     container_name: eigenfield_ollama
     ports:
@@ -22,7 +22,7 @@ services:
     networks:
       - eigenfield_network
 
-  eigenfield_langfuse_db:
+  langfuse_db:
     image: postgres:16-alpine
     container_name: eigenfield_langfuse_db
     environment:
@@ -39,7 +39,7 @@ services:
     networks:
       - eigenfield_network
 
-  eigenfield_langfuse:
+  langfuse:
     image: langfuse/langfuse:2
     container_name: eigenfield_langfuse
     ports:
@@ -52,7 +52,7 @@ services:
       - TELEMETRY_ENABLED=false
       - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=false
     depends_on:
-      - eigenfield_langfuse_db
+      - langfuse_db
     restart: unless-stopped
     deploy:
       resources:
@@ -61,7 +61,7 @@ services:
     networks:
       - eigenfield_network
 
-  eigenfield_backend:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -77,8 +77,8 @@ services:
       - ./backend/.env
     restart: unless-stopped
     depends_on:
-      - eigenfield_ollama
-      - eigenfield_langfuse
+      - ollama
+      - langfuse
     deploy:
       resources:
         limits:
@@ -86,7 +86,7 @@ services:
     networks:
       - eigenfield_network
 
-  eigenfield_frontend:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -105,7 +105,7 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - NODE_OPTIONS=--max-old-space-size=1024
     depends_on:
-      - eigenfield_backend
+      - backend
     deploy:
       resources:
         limits:

@@ -7,7 +7,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from retrieval import search_documents
 from generation import generate_response
 from ingestion import index_document, delete_document_from_vectordb
-from backend.app.tracing import get_langfuse
+from tracing import get_langfuse
 
 app = FastAPI(title="EIGEN FIELD RAG Agriculture API")
 

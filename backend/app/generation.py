@@ -1,7 +1,7 @@
 import json
 import time
 from langchain_ollama import OllamaLLM
-from backend.app.tracing import get_langfuse
+from tracing import get_langfuse
 
 llm = OllamaLLM(
 	model="qwen2:1.5b",

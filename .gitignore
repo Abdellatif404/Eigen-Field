@@ -40,4 +40,5 @@ knip.jsonc
 
 # local development files
 vectordb
-data/uploads
+uploads
+scripts

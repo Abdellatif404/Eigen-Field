@@ -1,6 +1,6 @@
 import time
 from database import get_collection
-from backend.app.tracing import get_langfuse
+from tracing import get_langfuse
 
 def search_documents(query: str, top_k: int = 3, trace=None):
 	"""Search for relevant document chunks"""

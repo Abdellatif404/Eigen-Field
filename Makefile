@@ -13,7 +13,7 @@ down:
 	$(COMPOSE) down
 
 logs:
-	$(COMPOSE) logs -f
+	$(COMPOSE) logs -f $(SERVICE)
 
 clean:
 	$(COMPOSE) down --remove-orphans
