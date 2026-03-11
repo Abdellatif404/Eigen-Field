@@ -5,31 +5,14 @@ A smart document retrieval system that converts agricultural documents into an i
 
 ---
 
-## 📸 Media & Demos
+### 🎬 Demo
+https://github.com/user-attachments/assets/db6bcbdd-0435-4644-ae8b-35c532c09d5f
 
-<details>
-  <summary><b>📊 View Analytics Dashboard</b></summary>
-  <br/>
-  <p align="center">
-    <img src="./frontend/public/overview/dashboard.webp" alt="Eigen Field Dashboard" width="100%"/>
-  </p>
-</details>
+### 💬 RAG Chat Interface
+<p align="center">
+  <img src="./frontend/public/overview/chat.webp" alt="Eigen Field Chat" width="100%"/>
+</p>
 
-<details>
-  <summary><b>💬 View RAG Chat Interface</b></summary>
-  <br/>
-  <p align="center">
-    <img src="./frontend/public/overview/chat.webp" alt="Eigen Field Chat" width="100%"/>
-  </p>
-</details>
-
-<details>
-  <summary><b>🎬 Watch System Demo</b></summary>
-
-  https://github.com/user-attachments/assets/db6bcbdd-0435-4644-ae8b-35c532c09d5f
-
-</details>
-  
 ---
 
 ### Key Features

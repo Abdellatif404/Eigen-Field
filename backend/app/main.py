@@ -1,6 +1,7 @@
 import os
 import uuid
 import magic
+import asyncio
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -48,7 +49,6 @@ async def upload_document(file: UploadFile = File(...)):
 						status_code=413, detail="File too large (Max 50MB)"
 					)
 				buffer.write(chunk)
-
 		mime = magic.Magic(mime=True)
 		file_mime = mime.from_file(file_path)
 		if file_mime not in ALLOWED_MIME_TYPES:
@@ -56,9 +56,9 @@ async def upload_document(file: UploadFile = File(...)):
 			raise HTTPException(
 				status_code=400, detail=f"Invalid file type: {file_mime}"
 			)
-
-		indexing_res = index_document(file_path, file.filename, unique_id)
-
+		indexing_res = await asyncio.to_thread(
+			index_document, file_path, file.filename, unique_id
+		)
 		return {
 			"status": "success",
 			"filename": file.filename,

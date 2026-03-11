@@ -2,7 +2,7 @@ import re
 import fitz
 import unicodedata
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from database import get_collection
+from database import get_collection, embedding_func
 
 collection = get_collection()
 splitter = RecursiveCharacterTextSplitter(
@@ -70,19 +70,14 @@ def index_document(file_path: str, doc_name: str, unique_id: str):
 	if not all_chunks:
 		raise ValueError("No chunks created")
 
-	BATCH_SIZE = 100
-	for i in range(0, len(all_chunks), BATCH_SIZE):
-		batch = all_chunks[i : i + BATCH_SIZE]
-		batch_metadata = all_metadata[i : i + BATCH_SIZE]
-		batch_ids = [
-			f"{unique_id}_ch_{j}"
-			for j in range(i, i + len(batch))
-		]
-		collection.add(
-			ids=batch_ids,
-			documents=batch,
-			metadatas=batch_metadata
-		)
+	all_embeddings = embedding_func(all_chunks)
+	all_ids = [f"{unique_id}_ch_{j}" for j in range(len(all_chunks))]
+	collection.add(
+		ids=all_ids,
+		documents=all_chunks,
+		metadatas=all_metadata,
+		embeddings=all_embeddings,
+	)
 	return len(all_chunks)
 
 def delete_document_from_vectordb(doc_id: str):
